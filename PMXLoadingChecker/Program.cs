@@ -18,7 +18,10 @@ namespace PMXLoadingChecker
                 console.WriteLine("無効な引数です。");
                 return;
             }
+            // 読み込むPMXモデルのフルパスを設定する
             string path = args[0];
+            // string path = @"C:\hoge\mikumiku\mikusan.pmx"    //←直接記述（ハードコーディング）の例
+
             if(System.IO.File.Exists(path) == false)
             {
                 console.WriteLine("存在しないファイルが指定されました。");
@@ -91,7 +94,7 @@ namespace PMXLoadingChecker
                     return;
                 }
                 console.WriteLine(string.Format("モデル名（JP）：{0}", ModelInfo.Name.Japanese));
-                console.WriteLine(string.Format("モデル名（EN）：{0}", ModelInfo.Name.Englishl));
+                console.WriteLine(string.Format("モデル名（EN）：{0}", ModelInfo.Name.English));
                 console.WriteLine(string.Format("頂点数：{0}", Vertex.Count));
                 console.WriteLine(string.Format("頂点インデックス数：{0}", VertexIndex.Count));
                 console.WriteLine(string.Format("テクスチャ数：{0}", Texture.Count));
@@ -107,40 +110,86 @@ namespace PMXLoadingChecker
                 {
                     System.IO.FileInfo fi = new FileInfo(path);
                     string directoryPath = fi.Directory.FullName;
-                    using (StreamWriter sw = new StreamWriter(new FileStream(string.Format(@"{0}\{1}",directoryPath,"header.txt"), FileMode.CreateNew, FileAccess.Write, FileShare.Write)))
+
+                    // ヘッダ情報出力
+                    using (StreamWriter sw = new StreamWriter(new FileStream(string.Format(@"{0}\{1}", directoryPath, "header.txt"), FileMode.CreateNew, FileAccess.Write, FileShare.Write)))
                     {
-                        sw.WriteLine(Header.Magic);
-                        sw.WriteLine(Header.DataField);
+                        sw.WriteLine(string.Format("{0},{1},{2}", Header.Magic[0], Header.Magic[1], Header.Magic[2]));
+                        StringBuilder sb = new StringBuilder();
+                        foreach (var b in Header.DataField)
+                        {
+                            sb.Append(b.ToString());
+                        }
+                        sw.WriteLine(sb.ToString());
                         sw.WriteLine(Header.Version);
                     }
+
+                    // モデル名、コメント出力
                     using (StreamWriter sw = new StreamWriter(new FileStream(string.Format(@"{0}\{1}", directoryPath, "info.txt"), FileMode.CreateNew, FileAccess.Write, FileShare.Write)))
                     {
+                        // sw.WriteLine()はファイルへ1行文字列（テキスト）を書き込んで改行する
                         sw.WriteLine(ModelInfo.Name.Japanese);
-                        sw.WriteLine(ModelInfo.Name.Englishl);
+                        sw.WriteLine(ModelInfo.Name.English);
                         sw.WriteLine(ModelInfo.Comment.Japanese);
-                        sw.WriteLine(ModelInfo.Comment.Englishl);
+                        sw.WriteLine(ModelInfo.Comment.English);
                     }
+
+                    // 頂点情報出力　作成途中
                     using (StreamWriter sw = new StreamWriter(new FileStream(string.Format(@"{0}\{1}", directoryPath, "vertex.txt"), FileMode.CreateNew, FileAccess.Write, FileShare.Write)))
                     {
-                        foreach(var aVertex in Vertex)
+                        // リスト要素全てをループ
+                        foreach (var aVertex in Vertex)
                         {
+                            // StringBuilderは文字列を連結させる
+                            // sb.Append(文字列）とすると内部的にどんどん文字列を連結して蓄えていく←改行はされない！
+                            // sb.ToString()とすると最終的に長い一つの文字列として取り出せる
                             StringBuilder sb = new StringBuilder();
+
+                            // string.Formatは文字列を整形する
+                            // {0},{1},{2}はカンマ区切りで{0}{1}{2}の位置にデータを格納して文字列にする
+                            // 例：string.Format("{0},{1},{2}","一番目","二番目","三番目");は
+                            // "一番目,二番目,三番目"と出力される
+                            // ↓1行目は頂点座標XYZをカンマ区切りにしてStringBuilderに追加している。文字列最後の,（{2}の後ろ）2行目の法線情報連結用
                             sb.Append(string.Format("{0},{1},{2},", aVertex.Position.X, aVertex.Position.Y, aVertex.Position.Z));
                             sb.Append(string.Format("{0},{1},{2},", aVertex.Normal.X, aVertex.Normal.Y, aVertex.Normal.Z));
                             sb.Append(string.Format("{0},{1},", aVertex.UV.U, aVertex.UV.V));
-                            switch(aVertex.WeightType)
+                            switch (aVertex.WeightType)
                             {
                                 case VertexInfo.WeightTypes.BDEF1:
-                                    sb.Append(string.Format("{0},{1},", aVertex.WeightBDEF., aVertex.UV.V));
+                                    //sb.Append(string.Format("{0},{1},", aVertex.WeightBDEF., aVertex.UV.V));
                                     break;
                             }
 
-
+                            // カンマ区切りで整形済み頂点データをファイルへ1行分書き込む
                             sw.WriteLine(sb.ToString());
                         }
-                        
-                        
                     }
+                    // 頂点インデックス出力
+                    // 略
+
+                    // テクスチャ情報出力
+                    //                                                                               出力フォルダのパス、出力ファイル名
+                    using (StreamWriter sw = new StreamWriter(new FileStream(string.Format(@"{0}\{1}", directoryPath, "texture.txt"), FileMode.CreateNew, FileAccess.Write, FileShare.Write)))
+                    {
+                        // リスト要素全てをループ
+                        foreach (var aTextureInfo in Texture)
+                        {
+                            // 1つのテクスチャパスをファイルへ1行分書き込む
+                            sw.WriteLine(aTextureInfo.TexturePath);
+                        }
+                    }
+                    // マテリアル情報出力
+                    using (StreamWriter sw = new StreamWriter(new FileStream(string.Format(@"{0}\{1}", directoryPath, "material.txt"), FileMode.CreateNew, FileAccess.Write, FileShare.Write)))
+                    {
+                        
+                        // 略
+                    }
+                    // ボーン情報出力
+                    // モーフ情報出力
+                    // システム名称出力　枠名とか
+                    // 剛体情報出力
+                    // ジョイント情報出力
+                    // ソフトボディ出力 ソフトボディは情報が無い場合もあります
                 }
                 catch
                 {
